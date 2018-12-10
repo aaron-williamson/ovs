@@ -203,7 +203,7 @@ ovs_cmdl_run_command__(struct ovs_cmdl_context *ctx,
     const struct ovs_cmdl_command *p;
 
     if (ctx->argc < 1) {
-        ovs_fatal(0, "missing command name; use --help for help");
+        ovs_fatal(0, "missing command name; use --help for help, or do something else, I don't know! Hi mom!");
     }
 
     for (p = commands; p->name != NULL; p++) {
