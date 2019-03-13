@@ -27,6 +27,7 @@ struct dp_meter_band {
 	u32 rate;
 	u32 burst_size;
 	u32 bucket; /* 1/1000 packets, or in bits */
+	u8 prec_level;
 	struct ovs_flow_stats stats;
 };
 

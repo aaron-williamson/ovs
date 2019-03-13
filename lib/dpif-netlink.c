@@ -3134,6 +3134,9 @@ dpif_netlink_meter_get_features(const struct dpif *dpif_,
                         case OVS_METER_BAND_TYPE_DROP:
                             features->band_types |= 1 << OFPMBT13_DROP;
                             break;
+                        case OVS_METER_BAND_TYPE_DSCP_REMARK:
+                            features->band_types |= 1 << OFPMBT13_DSCP_REMARK;
+                            break;
                         }
                     }
                 }
@@ -3166,6 +3169,8 @@ dpif_netlink_meter_set__(struct dpif *dpif_, ofproto_meter_id meter_id,
         switch (config->bands[i].type) {
         case OFPMBT13_DROP:
             break;
+        case OFPMBT13_DSCP_REMARK:
+            break;
         default:
             return ENODEV; /* Unsupported band type */
         }
@@ -3191,6 +3196,9 @@ dpif_netlink_meter_set__(struct dpif *dpif_, ofproto_meter_id meter_id,
         case OFPMBT13_DROP:
             band_type = OVS_METER_BAND_TYPE_DROP;
             break;
+        case OFPMBT13_DSCP_REMARK:
+            band_type = OVS_METER_BAND_TYPE_DSCP_REMARK;
+            break;
         default:
             band_type = OVS_METER_BAND_TYPE_UNSPEC;
         }
@@ -3199,6 +3207,9 @@ dpif_netlink_meter_set__(struct dpif *dpif_, ofproto_meter_id meter_id,
         nl_msg_put_u32(&buf, OVS_BAND_ATTR_BURST,
                        config->flags & OFPMF13_BURST ?
                        band->burst_size : band->rate);
+        nl_msg_put_u8(&buf, OVS_BAND_ATTR_PREC_LEVEL,
+                      band_type == OVS_METER_BAND_TYPE_DSCP_REMARK ?
+                      band->prec_level : 0);
         nl_msg_end_nested(&buf, band_offset);
     }
     nl_msg_end_nested(&buf, bands_offset);

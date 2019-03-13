@@ -992,6 +992,7 @@ enum ovs_band_attr {
 	OVS_BAND_ATTR_TYPE,	/* u32 OVS_METER_BAND_TYPE_* constant. */
 	OVS_BAND_ATTR_RATE,	/* u32 band rate in meter units (see above). */
 	OVS_BAND_ATTR_BURST,	/* u32 burst size in meter units. */
+	OVS_BAND_ATTR_PREC_LEVEL, /* u8 prec level for DSCP remark. */
 	OVS_BAND_ATTR_STATS,	/* struct ovs_flow_stats for the band. */
 	__OVS_BAND_ATTR_MAX
 };
@@ -1000,7 +1001,8 @@ enum ovs_band_attr {
 
 enum ovs_meter_band_type {
 	OVS_METER_BAND_TYPE_UNSPEC,
-	OVS_METER_BAND_TYPE_DROP,   /* Drop exceeding packets. */
+	OVS_METER_BAND_TYPE_DROP,	 /* Drop exceeding packets. */
+	OVS_METER_BAND_TYPE_DSCP_REMARK, /* DSCP remark exceeding packets */
 	__OVS_METER_BAND_TYPE_MAX
 };
 

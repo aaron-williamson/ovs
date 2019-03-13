@@ -39,6 +39,7 @@ static const struct nla_policy band_policy[OVS_BAND_ATTR_MAX + 1] = {
 	[OVS_BAND_ATTR_TYPE] = { .type = NLA_U32, },
 	[OVS_BAND_ATTR_RATE] = { .type = NLA_U32, },
 	[OVS_BAND_ATTR_BURST] = { .type = NLA_U32, },
+	[OVS_BAND_ATTR_PREC_LEVEL] = { .type = NLA_U8, },
 	[OVS_BAND_ATTR_STATS] = { .len = sizeof(struct ovs_flow_stats) },
 };
 
@@ -173,8 +174,8 @@ static int ovs_meter_cmd_features(struct sk_buff *skb, struct genl_info *info)
 	band_nla = nla_nest_start(reply, OVS_BAND_ATTR_UNSPEC);
 	if (!band_nla)
 		goto nla_put_failure;
-	/* Currently only DROP band type is supported. */
-	if (nla_put_u32(reply, OVS_BAND_ATTR_TYPE, OVS_METER_BAND_TYPE_DROP))
+	if (nla_put_u32(reply, OVS_BAND_ATTR_TYPE, OVS_METER_BAND_TYPE_DROP) ||
+	    nla_put_u32(reply, OVS_BAND_ATTR_TYPE, OVS_METER_BAND_TYPE_DSCP_REMARK))
 		goto nla_put_failure;
 	nla_nest_end(reply, band_nla);
 	nla_nest_end(reply, nla);
@@ -257,6 +258,7 @@ static struct dp_meter *dp_meter_create(struct nlattr **a)
 			err = -EINVAL;
 			goto exit_free_meter;
 		}
+		band->prec_level = nla_get_u8(attr[OVS_BAND_ATTR_PREC_LEVEL]);
 
 		band->burst_size = nla_get_u32(attr[OVS_BAND_ATTR_BURST]);
 		/* Figure out max delta_t that is enough to fill any bucket.
@@ -523,6 +525,24 @@ bool ovs_meter_execute(struct datapath *dp, struct sk_buff *skb,
 		band = &meter->bands[band_exceeded_max];
 		band->stats.n_packets += 1;
 		band->stats.n_bytes += skb->len;
+
+		/* DSCP remark the packet  */
+		if (band->type == OVS_METER_BAND_TYPE_DSCP_REMARK) {
+			struct iphdr *iph;
+			u8 tos_mask = 0x3; // Preserve the 2 lowest TOS bits (ECN)
+			u8 prec_shifted = band->prec_level << 2;
+			int err = skb_ensure_writable(skb, skb_network_offset(skb) +
+							sizeof(struct iphdr));
+			if (unlikely(err)) {
+				printk("Could not ensure skb was writable: error %d\n", err);
+				spin_unlock(&meter->lock);
+				return false;
+			}
+
+			iph = ip_hdr(skb);
+			ipv4_change_dsfield(iph, tos_mask, prec_shifted);
+			key->ip.tos = iph->tos;
+		}
 
 		/* Drop band triggered, let the caller drop the 'skb'.  */
 		if (band->type == OVS_METER_BAND_TYPE_DROP) {
