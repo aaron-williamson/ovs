@@ -1,0 +1,23 @@
+#!/bin/bash -ex
+# Make sure mininet isn't running
+if ps -a | grep mn; then
+    echo "Mininet running"
+    exit 1
+fi
+
+# Add the OVS scripts directory to our PATH
+PATH=$PATH:/usr/share/openvswitch/scripts
+
+# Stop OVS if it might be started
+if hash ovs-ctl 2>/dev/null; then
+    ovs-ctl stop
+fi
+
+# Build the code
+./boot.sh
+./configure --prefix=/usr --with-linux="/lib/modules/$(uname -r)/build"
+make
+make install
+make modules_install
+
+echo "Successfully installed new OVS"
